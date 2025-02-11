@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signature Form</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .container { max-width: 60%; margin: 20px auto; }
+        canvas { border: 1px solid #000; cursor: crosshair; }
+        .buttons { margin-top: 10px; }
+        input, select { margin-top: 10px; padding: 8px; width: 100%; }
+        button { width: 40%; margin-top: 10px; padding: 8px 16px; background-color: #515f6a; color: white; border: none; cursor: pointer; }
+        label { display: block; text-align: left; font-weight: bold; }
+        .form-group { display: flex; flex-direction: column; align-items: flex-start; margin-bottom: 10px; }
+        .success { color: green; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Signature Form</h2>
+        <form id="signatureForm">
+            <input type="hidden" name="contact_number">
+
+            <div class="form-group">
+                <label for="Businessname">Business Name:</label>
+                <input type="text" id="Businessname" name="Businessname">
+            </div>
+
+            <div class="form-group">
+                <label for="name">Full Name:</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="Address">Address:</label>
+                <input type="text" id="Address" name="Address" required>
+            </div>
+
+            <div class="form-group">
+                <label for="PhoneNumber">Phone Number:</label>
+                <input type="number" id="PhoneNumber" name="PhoneNumber" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="Consent">Consent:</label>
+                <select id="Consent" name="Consent" required>
+                    <option value="" disabled selected>Select Yes or No</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                </select>
+            </div>
+
+            <p>Draw your signature:</p>
+            <canvas id="signatureCanvas" width="300" height="150"></canvas>
+            <div class="buttons">
+                <button type="button" onclick="clearCanvas()">Clear Signature</button>
+            </div>
+
+            <div class="form-group">
+                <label for="datesig">Signature Date:</label>
+                <input type="date" id="datesig" name="datesig" required>
+            </div>
+
+            <button type="submit">Submit</button>
+            <div class="form-message"></div>
+        </form>
+    </div>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+        const canvas = document.getElementById('signatureCanvas');
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+
+        function startDrawing(e) {
+            drawing = true;
+            ctx.beginPath();
+            ctx.moveTo(e.offsetX, e.offsetY);
+        }
+
+        function draw(e) {
+            if (!drawing) return;
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.stroke();
+        }
+
+        function stopDrawing() {
+            drawing = false;
+            ctx.closePath();
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function generatePDF() {
+            const pdf = new jsPDF();
+            pdf.setFontSize(16);
+            pdf.text("Signature Form", 20, 20);
+
+            const formData = new FormData(document.getElementById('signatureForm'));
+            let yPosition = 40;
+
+            for (const [key, value] of formData.entries()) {
+                if (key !== "contact_number") {
+                    pdf.text(`${key}: ${value}`, 20, yPosition);
+                    yPosition += 10;
+                }
+            }
+
+            // Capture the signature
+            const signatureImage = canvas.toDataURL("image/png");
+            pdf.addImage(signatureImage, 'PNG', 20, yPosition + 10, 100, 50);
+
+            // Download the PDF
+            pdf.save("Signature_Form.pdf");
+        }
+
+        const msg = document.querySelector(".form-message");
+
+        (function() {
+            emailjs.init({ publicKey: "t_qFc-Sx2Zo7Rh-t9" });
+        })();
+
+        document.getElementById('signatureForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            this.contact_number.value = (Math.random() * 100000) | 0;
+
+            // Generate PDF before sending email
+            generatePDF();
+
+            emailjs.sendForm('service_spq6vng', 'template_yjm2aec', this)
+                .then(function() {
+                    console.log('SUCCESS!');
+                    document.getElementById('signatureForm').reset();
+                    msg.innerHTML = "<span class='success'>Form sent successfully!</span>";
+                    clearCanvas();
+                }, (error) => {
+                    console.log('FAILED...', error);
+                    msg.innerHTML = "<span style='color:red;'>Failed to send email.</span>";
+                });
+        });
+
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseleave', stopDrawing);
+    </script>
+</body>
+</html>

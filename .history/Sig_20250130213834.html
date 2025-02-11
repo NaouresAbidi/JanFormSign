@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signature Form</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .container { max-width: 60%; margin: 20px auto; }
+        canvas { border: 1px solid #000; cursor: crosshair; }
+        .buttons { margin-top: 10px; }
+        input, select{ margin-top: 10px; padding: 8px; width: 100%; }
+        button { width: 40% ; margin-top: 10px; padding: 8px 16px; background-color: #515f6a; color: white; border: none; cursor: pointer; }
+        label {
+    display: block; /* Ensures each label is on a new line */
+    text-align: left; /* Aligns text to the left */
+    font-weight: bold; /* Optional: makes labels stand out */
+}
+.form-group {
+    display: flex;
+    flex-direction: column; /* Stacks label and input vertically */
+    align-items: flex-start; /* Aligns text to the left */
+    margin-bottom: 10px; /* Adds spacing */
+}
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Signature Form</h2>
+        <form id="signatureForm">
+            <div class="form-group">
+            <label for="Businessname">Business Name:</label>
+            <input type="text" id="Businessname" name="Businessname"><br>
+                </div>
+                <div class="form-group">
+
+            <label for="name">Full Name:</label>
+            <input type="text" id="name" name="name" required><br>
+</div>
+<div class="form-group">
+
+            <label for="Address">Address:</label>
+            <input type="text" id="Address" name="Address" required><br>
+</div>
+            <label for="PhoneNumber">Phone Number:</label>
+            <input type="number" id="PhoneNumber" name="PhoneNumber" required><br>
+            <div class="form-group">
+
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required><br>
+</div>
+            <label for="website">Website Link (Optional):</label>
+            <input type="text" id="website" name="website"><br>
+            <div class="form-group">
+
+            <label for="Socialmedia">Social Media Links (Optional):</label>
+            <input type="text" id="Socialmedia" name="Socialmedia"><br>
+</div>
+<div class="form-group">
+
+            <label for="Consent">
+                FR: Je consens à ce que Janssen Cosmetics Canada publie les informations suivantes sur son site web afin de me référencer comme professionnel(le) utilisant leurs produits.<br>
+                EN: I authorize Janssen Cosmetics Canada to display the following information on its website to list me as a professional using their products.
+            </label>
+            <select id="Consent" name="Consent" required>
+                <option value="" disabled selected>Select Yes or No</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+            </select><br>
+            </div>
+            <p>Draw your signature:</p>
+            <canvas id="signatureCanvas" width="300" height="150"></canvas>
+            <div class="buttons">
+                <button type="button" onclick="clearCanvas()">Clear Signature</button>
+            </div>
+            <div class="form-group">
+
+            <label for="datesig">Signature Date:</label>
+            <input type="date" id="datesig" name="datesig" required><br>
+</div>
+            <button type="button" onclick="submitForm()">Submit</button>
+        </form>
+    </div>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+        const canvas = document.getElementById('signatureCanvas');
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+
+        function startDrawing(e) {
+            drawing = true;
+            ctx.beginPath();
+            ctx.moveTo(e.offsetX, e.offsetY);
+        }
+
+        function draw(e) {
+            if (!drawing) return;
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.stroke();
+        }
+
+        function stopDrawing() {
+            drawing = false;
+            ctx.closePath();
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function submitForm() {
+            const businessName = document.getElementById('Businessname').value.trim();
+            const name = document.getElementById('name').value.trim();
+            const address = document.getElementById('Address').value.trim();
+            const phone = document.getElementById('PhoneNumber').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const website = document.getElementById('website').value.trim();
+            const socialMedia = document.getElementById('Socialmedia').value.trim();
+            const consent = document.getElementById('Consent').value;
+            const dateSig = document.getElementById('datesig').value;
+            const signatureImage = canvas.toDataURL("image/png");
+
+            if (!name || !address || !phone || !email || !consent || !dateSig) {
+                alert("Please fill out all required fields.");
+                return;
+            }
+
+            // Create PDF
+            const pdf = new jsPDF();
+            pdf.text("Signature Form Submission", 20, 20);
+            pdf.text(`Business Name: ${businessName || "N/A"}`, 20, 30);
+            pdf.text(`Full Name: ${name}`, 20, 40);
+            pdf.text(`Address: ${address}`, 20, 50);
+            pdf.text(`Phone: ${phone}`, 20, 60);
+            pdf.text(`Email: ${email}`, 20, 70);
+            pdf.text(`Website: ${website || "N/A"}`, 20, 80);
+            pdf.text(`Social Media: ${socialMedia || "N/A"}`, 20, 90);
+            pdf.text(`I authorize Janssen Cosmetics Canada to display \n the following information on its website \n to list me as a professional using their products. \n Consent Given: ${consent}`, 20, 100);
+            pdf.text(`Signature Date: ${dateSig}`, 20, 140);
+            pdf.text("Signature:", 20, 150);
+            pdf.addImage(signatureImage, "PNG", 20, 160, 170, 50);
+
+            // Convert PDF to Base64
+            const pdfDataUri = pdf.output("datauristring");
+
+            // Open email client with pre-filled data
+            const emailBody = `Hello,\n\nPlease find attached the signed form from ${name} with email .\n\nRegards,\n${name}`;
+            const mailtoLink = `mailto:n.abidi@eecinc.ca?subject=Signature Form Submission&body=${encodeURIComponent(emailBody)}`;
+
+            // Open mail client
+            window.location.href = mailtoLink;
+
+            // Automatically download PDF for the user to manually attach
+            const pdfBlob = pdf.output("blob");
+            const pdfUrl = URL.createObjectURL(pdfBlob);
+            const a = document.createElement("a");
+            a.href = pdfUrl;
+            a.download = "Signature_Form.pdf";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseleave', stopDrawing);
+    </script>
+</body>
+</html>
